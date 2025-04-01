@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FILE SIZE REDUCER BY AA BROTHERS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="icon" type="image/png" href="AA.png">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #4b09e4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #333;
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 2.5rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      max-width: 250px;
+      width: 100%;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .styled-button {
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(106, 17, 203, 0.3);
+      margin-top: 10px;
+      display: inline-block;
+      width: auto;
+    }
+    .styled-button:hover {
+      background: linear-gradient(135deg, #2575fc, #6a11cb);
+      box-shadow: 0 6px 15px rgba(37, 117, 252, 0.4);
+    }
+    .dropdown {
+      width: 100%;
+      margin: 10px 0;
+    }
+    select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 25px;
+      border: 2px solid #6a11cb;
+      font-size: 1rem;
+    }
+    #cropContainer {
+      display: none;
+      max-width: 100%;
+      margin-top: 1rem;
+    }
+    #croppedPreview {
+      display: none;
+      max-width: 100%;
+      margin-top: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>FILE SIZE REDUCER BY AA BROTHERS</h1>
+    <input type="file" id="imageInput" accept="image/*" class="styled-button" style="padding: 15px 5px; font-size: 0.8rem;">
+    <div id="cropContainer">
+      <img id="cropImage" style="max-width: 100%;">
+      <button id="cropBtn" class="styled-button">Crop</button>
+    </div>
+    <img id="croppedPreview" alt="Cropped Image">
+    <div class="dropdown">
+      <select id="sizeOptions">
+        <option value="" disabled selected>Select Size</option>
+        <option value="10">10 KB</option>
+        <option value="30">30 KB</option>
+        <option value="50">50 KB</option>
+        <option value="100">100 KB</option>
+        <option value="300">300 KB</option>
+      </select>
+    </div>
+    <div class="dropdown">
+      <select id="formatOptions">
+        <option value="" disabled selected>Select Format</option>
+        <option value="image">Image</option>
+        <option value="pdf">PDF</option>
+      </select>
+    </div>
+    <button id="downloadBtn" class="styled-button" disabled>Download</button>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const cropContainer = document.getElementById('cropContainer');
+    const cropImage = document.getElementById('cropImage');
+    const croppedPreview = document.getElementById('croppedPreview');
+    const cropBtn = document.getElementById('cropBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const formatOptions = document.getElementById('formatOptions');
+    const sizeOptions = document.getElementById('sizeOptions');
+    let cropper, croppedDataUrl;
+
+    // Load image into cropper
+    imageInput.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          cropImage.src = e.target.result;
+          cropContainer.style.display = 'block';
+          if (cropper) cropper.destroy();
+          cropper = new Cropper(cropImage, { aspectRatio: NaN });
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Crop the image and display preview
+    cropBtn.addEventListener('click', function() {
+      const croppedCanvas = cropper.getCroppedCanvas();
+      croppedDataUrl = croppedCanvas.toDataURL();
+      croppedPreview.src = croppedDataUrl;
+      croppedPreview.style.display = 'block';
+      downloadBtn.disabled = false;
+    });
+
+    // Resize image based on the selected target size
+    sizeOptions.addEventListener('change', function() {
+      const targetSizeKB = parseInt(sizeOptions.value);
+      if (croppedDataUrl) {
+        let img = new Image();
+        img.onload = function() {
+          let resizedDataUrl = resizeImage(img, targetSizeKB);
+          croppedDataUrl = resizedDataUrl;
+          croppedPreview.src = resizedDataUrl;
+        };
+        img.src = croppedDataUrl;
+      }
+    });
+
+    // Download image/PDF with fixed file name "ar bro"
+    downloadBtn.addEventListener('click', function() {
+      const format = formatOptions.value;
+      if (format === 'image') {
+        downloadImage(croppedDataUrl);
+      } else if (format === 'pdf') {
+        downloadPDF(croppedDataUrl);
+      }
+    });
+
+    // Function to reduce image file size using canvas
+    function resizeImage(img, targetSizeKB) {
+      let quality = 1.0;
+      let width = img.width;
+      let height = img.height;
+      const canvas = document.createElement('canvas');
+      let resizedDataUrl;
+      while (true) {
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resizedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        const fileSizeKB = (resizedDataUrl.length * 0.75) / 1024; // approximate file size in KB
+        
+        if (fileSizeKB <= targetSizeKB) {
+          break;
+        }
+        // Decrease quality in smaller increments if possible
+        if (quality > 0.1) {
+          quality -= 0.05;
+          if (quality < 0.1) quality = 0.1;
+        } else {
+          // If quality is at its lower limit, reduce dimensions and reset quality
+          width *= 0.9;
+          height *= 0.9;
+          quality = 1.0;
+        }
+        // Safety break if image gets too small
+        if (width < 10 || height < 10) {
+          break;
+        }
+      }
+      return resizedDataUrl;
+    }
+
+    function downloadImage(dataUrl) {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = 'AR brother.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function downloadPDF(dataUrl) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('AR brother.pdf');
+    }
+  </script>
+</body>
+</html>
